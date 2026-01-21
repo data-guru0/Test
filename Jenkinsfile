@@ -1,52 +1,26 @@
+@Library('jenkins-shared') _
+
 pipeline {
     agent any
     environment {
-        DOCKER_HUB_REPO = "dataguru97/shared-test"
-        DOCKER_HUB_CREDENTIALS_ID = "dockerhub-token"
-        KUBECONFIG_CREDENTIALS = "kubeconfig"
+        DOCKER_REPO = "dataguru97/shared-test"
     }
     stages {
-        stage('Checkout GitHub') {
+        stage('Checkout') {
             steps {
-                echo 'Checking out code from GitHub...'
-                checkout scmGit(
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[credentialsId: 'github-token', url: 'https://github.com/data-guru0/GITOPS-PROJECT-9.git']]
-                )
+                gitCheckout('https://github.com/data-guru0/Test.git', '*/main', 'github-token')
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build & Push Image') {
             steps {
-                script {
-                    echo 'Building Docker image...'
-                    dockerImage = docker.build("${DOCKER_HUB_REPO}:latest")
-                }
-            }
-        }
-
-        stage('Push to DockerHub') {
-            steps {
-                script {
-                    echo 'Pushing Docker image to DockerHub...'
-                    docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS_ID}") {
-                        dockerImage.push('latest')
-                    }
-                }
+                dockerBuildAndPush(DOCKER_REPO, 'dockerhub-token')
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                script {
-                    echo 'Applying K8s manifests...'
-                    kubeconfig(credentialsId: "${KUBECONFIG_CREDENTIALS}", serverUrl: "") {
-                        sh """
-                        kubectl apply -f k8s/deployment.yaml
-                        kubectl apply -f k8s/service.yaml
-                        """
-                    }
-                }
+                k8sDeploy('kubeconfig')
             }
         }
     }
