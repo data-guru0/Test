@@ -18,6 +18,12 @@ pipeline {
             }
         }
 
+        stage('Install Kubectl') {
+            steps {
+                installKubectl()
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
                 k8sDeploy('kubeconfig')
